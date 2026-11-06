@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Christmas Card Labels</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600&family=Zilla+Slab:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: left rail of three steps (load, choose, print) beside a to-scale preview of each Avery sheet */
+:root {
+  --bg: #f3f5f3;
+  --panel: #ffffff;
+  --ink: #1c2420;
+  --muted: #5d6a63;
+  --line: #d6ddd8;
+  --accent: #1f5c47;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ede7;
+  --sheet: #ffffff;
+  --sheet-line: #dfe5e1;
+  --label-ink: #111111;
+  --warn: #8a5a00;
+  --warn-soft: #fbf0d9;
+  --display: "Zilla Slab", Rockwell, Georgia, serif;
+  --body: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  --labelface: Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a17; --panel: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #33403a;
+    --accent: #7cc3a5; --accent-ink: #0f1a15; --accent-soft: #23362d;
+    --sheet: #f4f4f1; --sheet-line: #c9d0cb; --label-ink: #111111;
+    --warn: #e8bd6a; --warn-soft: #3a2f19; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a17; --panel: #1c2420; --ink: #e6ece8; --muted: #9aa8a0; --line: #33403a;
+  --accent: #7cc3a5; --accent-ink: #0f1a15; --accent-soft: #23362d;
+  --sheet: #f4f4f1; --sheet-line: #c9d0cb; --label-ink: #111111;
+  --warn: #e8bd6a; --warn-soft: #3a2f19; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font-family: var(--display); font-weight: 600; font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+.spec { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); letter-spacing: .02em; margin-top: 8px; }
+.app { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 880px) { .app { grid-template-columns: minmax(0, 1fr); } }
+.rail { display: grid; gap: 16px; min-width: 0; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.step h2 { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0; display: flex; gap: 10px; align-items: baseline; }
+.step h2 .n { font-family: var(--body); font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 16px; text-align: center; display: grid; gap: 8px; justify-items: center; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.status { font-size: 13px; padding: 8px 10px; border-radius: 6px; background: var(--accent-soft); }
+.status.sample { background: var(--warn-soft); color: var(--warn); }
+button, .filebtn {
+  font: inherit; font-weight: 600; font-size: 14px; border-radius: 7px; padding: 9px 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:hover, .filebtn:hover { filter: brightness(1.05); }
+button:focus-visible, .filebtn:focus-within, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+.filebtn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.filebtn { position: relative; display: inline-block; }
+textarea { width: 100%; min-height: 70px; font: 13px/1.4 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); color: var(--ink); resize: vertical; }
+details.paste summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; }
+details.paste[open] { display: grid; gap: 8px; }
+.sections { display: grid; gap: 8px; }
+.sec { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.sec summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
+.sec summary::-webkit-details-marker { display: none; }
+.sec summary .head { flex: 1; min-width: 0; display: grid; }
+.sec summary .t { font-weight: 600; overflow-wrap: anywhere; }
+.sec summary .c { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sec summary .tog {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid transparent; border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+}
+.sec summary:hover .tog { border-color: var(--accent); }
+.sec summary .chev { transition: transform .15s; }
+.sec[open] summary .chev { transform: rotate(180deg); }
+.sec .tog .hide, .sec[open] .tog .show { display: none; }
+.sec[open] .tog .hide { display: inline; }
+.sec ul { list-style: none; margin: 0; padding: 4px 12px 10px; max-height: 260px; overflow-y: auto; border-top: 1px solid var(--line); }
+.sec li label { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; padding: 3px 0; cursor: pointer; }
+.sec li .addr { color: var(--muted); font-size: 12px; display: block; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; margin-top: 2px; flex: none; }
+.totals { font-size: 14px; font-variant-numeric: tabular-nums; }
+.totals b { font-size: 18px; }
+.startgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 132px; padding: 6px; background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; }
+.startgrid button { padding: 0; height: 12px; border-radius: 2px; border: 1px solid var(--sheet-line); background: var(--sheet); }
+.startgrid button.used { background: repeating-linear-gradient(45deg, var(--sheet-line) 0 2px, transparent 2px 5px); }
+.startgrid button.first { background: var(--accent); border-color: var(--accent); }
+.startrow { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.startrow .txt { flex: 1; min-width: 160px; font-size: 13px; color: var(--muted); }
+.startrow .txt b { color: var(--ink); }
+.nudge { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nudge label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.nudge input { font: inherit; font-variant-numeric: tabular-nums; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); width: 100%; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.msg { font-size: 13px; min-height: 1em; margin: 0; }
+.msg.err { color: var(--warn); }
+.howto { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 6px; }
+.howto b { font-weight: 600; }
+.preview { display: grid; gap: 18px; justify-items: center; min-width: 0; }
+.preview .cap { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; justify-self: stretch; text-align: center; font-variant-numeric: tabular-nums; }
+.sheet {
+  width: 100%; max-width: 600px; aspect-ratio: 8.5 / 11; background: var(--sheet); position: relative;
+  container-type: inline-size; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 20px rgba(0,0,0,.08);
+}
+.lab {
+  position: absolute; border: 1px dashed var(--sheet-line); border-radius: calc(0.08 * 100cqw / 8.5);
+  display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+  color: var(--label-ink); font-family: var(--labelface); line-height: 1.22; white-space: nowrap;
+}
+.lab.skip { background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,.05) 6px 8px); }
+.empty { color: var(--muted); font-size: 14px; padding: 40px 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Christmas Card Labels</h1>
+    <p>Load your address list, pick who gets a card this year, and download a PDF that lines up with Avery 8160 label sheets.</p>
+    <div class="spec">Avery 8160 / 5160 · 30 labels per sheet · 1" × 2⅝" · US Letter</div>
+  </header>
+
+  <div class="app">
+    <div class="rail">
+      <section class="step">
+        <h2><span class="n">Step 1</span> Load your list</h2>
+        <p class="hint">In Google Sheets choose File → Download → Comma-separated values (.csv), then pick that file here. Columns A, B and C are used: name, street, city/state/ZIP.</p>
+        <div class="drop" id="drop">
+          <label class="filebtn"><input type="file" id="file" accept=".csv,.tsv,.txt,text/csv">Choose CSV file</label>
+          <span class="hint">or drag the file onto this box</span>
+        </div>
+        <details class="paste">
+          <summary>Or paste rows copied from Google Sheets</summary>
+          <textarea id="pasteBox" placeholder="Select columns A to C in your sheet, copy, and paste here"></textarea>
+          <div><button id="usePaste" type="button">Use pasted rows</button></div>
+        </details>
+        <div class="status sample" id="status">Showing a made-up sample list. Load your own file to replace it.</div>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">Step 2</span> Choose who gets labels</h2>
+        <p class="hint">Tick a box to print a whole group. Click <b>Choose people</b> to pick names one at a time. The Not-Sent lists start unchecked.</p>
+        <div class="sections" id="sections"></div>
+        <div class="totals" id="totals"></div>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">Step 3</span> Make the PDF</h2>
+        <div class="startrow">
+          <div class="startgrid" id="startgrid" aria-label="Choose the first label to print on"></div>
+          <div class="txt">Using a sheet with labels already peeled off? Click the first <b>unused</b> spot. Now starting at <b id="startNum">label 1</b>.</div>
+        </div>
+        <details class="paste">
+          <summary>Fine-tune position (only if your test page is off)</summary>
+          <div class="nudge">
+            <label for="nudgeX">Move right (inches)<input id="nudgeX" type="number" step="0.02" min="-0.3" max="0.3" value="0"></label>
+            <label for="nudgeY">Move down (inches)<input id="nudgeY" type="number" step="0.02" min="-0.3" max="0.3" value="0"></label>
+          </div>
+          <p class="hint">Use negative numbers to move left or up. These numbers are remembered in this browser for next year.</p>
+        </details>
+        <div class="btns">
+          <button class="primary" id="dlLabels" type="button">Download labels PDF</button>
+          <button id="dlTest" type="button">Download test page</button>
+        </div>
+        <p class="msg" id="msg"></p>
+      </section>
+
+      <section class="step">
+        <h2>Printing so they line up</h2>
+        <ol class="howto">
+          <li>Open the PDF in Preview or Adobe Reader.</li>
+          <li>In the print window set <b>Scale to 100%</b> (or "Actual size"). Turn off "Fit to page" or "Scale to fit". This is the most common reason labels drift.</li>
+          <li>Paper size: <b>US Letter</b>.</li>
+          <li>Print the test page on plain paper first. Hold it behind a label sheet against a window and check that the boxes match.</li>
+          <li>Load the label sheets the way your printer feeds them, then print the labels PDF.</li>
+        </ol>
+      </section>
+    </div>
+
+    <div class="preview" id="preview"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Avery 5160 / 8160 geometry in inches
+  const G = { top: 0.5, left: 0.1875, w: 2.625, h: 1.0, colPitch: 2.75, rowPitch: 1.0, cols: 3, rows: 10, padX: 0.15 };
+  const PER = G.cols * G.rows;
+  const MAX_PT = 10.5, MIN_PT = 7, WRAP_BELOW = 9;
+
+  const SAMPLE = [
+    ["Name", "Address", "City, State, Zip Code"],
+    ["The Okafor Family", "41 Larkspur Lane", "Madison, WI 53711"],
+    ["Priya & Tom Hendricks", "1208 Juniper Court, Apt. 3B", "Ann Arbor, MI 48104"],
+    ["Walt Brennan", "77 Harbor View Road", "Duluth, MN 55802"],
+    ["Gina & Luis Moreno", "5531 Cedar Hollow Drive", "Lexington, KY 40515"],
+    ["The Lindqvist Family", "9 Orchard Street", "Burlington, VT 05401"],
+    ["Name (INTERNATIONAL)", "Address", "City, Province, Postal Code"],
+    ["Fiona Carrick", "14 Rowan Terrace", "Edinburgh EH3 6PF, Scotland"],
+    ["", "", ""],
+    ["NOT SENT CHRISTMAS CARDS:", "", ""],
+    ["Marcy & Dale Pruitt", "320 Willow Bend", "Boise, ID 83706"]
+  ];
+
+  const $ = id => document.getElementById(id);
+  let groups = [];      // [{title, items:[{lines, on}]}]
+  let startAt = 0;      // 0-based
+  let nudge = { x: 0, y: 0 };
+
+  try { const s = JSON.parse(localStorage.getItem("labelNudge") || "null"); if (s) nudge = s; } catch (e) {}
+  $("nudgeX").value = nudge.x; $("nudgeY").value = nudge.y;
+
+  // ---------- parsing ----------
+  function parseCSV(text) {
+    const rows = []; let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ",") { row.push(cell); cell = ""; }
+      else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += ch;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+  function parseText(text) {
+    text = text.replace(/^﻿/, "");
+    const first = text.split(/\r?\n/)[0] || "";
+    if (first.includes("\t")) return text.split(/\r?\n/).map(l => l.split("\t"));
+    return parseCSV(text);
+  }
+  function titleCase(s) { return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+
+  // Group names: "<list> (<region>)", e.g. "Main List (USA)", "Not-Sent List (International)".
+  // A heading row with only column A filled starts a new list; "Name (INTERNATIONAL)" style rows switch the region.
+  function buildGroups(rows) {
+    const out = []; let cur = null, offFromHere = false, list = "Main List", region = "USA";
+    const start = () => { cur = { title: list + " (" + region + ")", items: [], off: offFromHere }; out.push(cur); };
+    rows.forEach(r => {
+      const a = (r[0] || "").trim(), b = (r[1] || "").trim(), c = (r[2] || "").trim();
+      if (!a && !b && !c) return;
+      if (b.toLowerCase() === "address") { // a header row like "Name (INTERNATIONAL)"
+        const m = a.match(/\(([^)]+)\)/);
+        const next = m && /intl|international|overseas|abroad/i.test(m[1]) ? "International" : m ? titleCase(m[1]) : region;
+        if (next !== region || !cur) { region = next; start(); }
+        return;
+      }
+      if (a && !b && !c) {
+        const t = a.replace(/:\s*$/, "");
+        if (/\bnot\b/i.test(t)) { offFromHere = true; list = "Not-Sent List"; }
+        else list = titleCase(t);
+        region = "USA"; start();
+        return;
+      }
+      if (!cur) start();
+      const lines = [a, b, c].filter(Boolean);
+      if (lines.length >= 2) cur.items.push({ lines, on: !cur.off });
+    });
+    return out.filter(g => g.items.length);
+  }
+
+  // ---------- text fitting ----------
+  const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
+  const meas = jsPDFCtor ? new jsPDFCtor({ unit: "in", format: "letter" }) : null;
+  const ctx = document.createElement("canvas").getContext("2d");
+  function clean(s) {
+    return s.replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")
+      .replace(/[^\x00-\xFF]/g, ch => ch.normalize("NFKD").replace(/[^\x00-\xFF]/g, ""));
+  }
+  function widthIn(text, pt) {
+    if (meas) { meas.setFont("helvetica", "normal"); return meas.getStringUnitWidth(text) * pt / 72; }
+    ctx.font = pt + "pt Helvetica, Arial, sans-serif"; return ctx.measureText(text).width / 96;
+  }
+  function fit(lines) {
+    const maxw = G.w - 2 * G.padX;
+    const sizeFor = ls => { let s = MAX_PT; while (s > MIN_PT && Math.max(...ls.map(l => widthIn(l, s))) > maxw) s -= 0.25; return s; };
+    lines = lines.map(clean);
+    let size = sizeFor(lines);
+    if (size < WRAP_BELOW && lines.length < 4) {
+      let i = 0; lines.forEach((l, j) => { if (widthIn(l, 10) > widthIn(lines[i], 10)) i = j; });
+      const k = lines[i].lastIndexOf(",");
+      if (k > 0) {
+        lines = [...lines.slice(0, i), lines[i].slice(0, k + 1), lines[i].slice(k + 1).trim(), ...lines.slice(i + 1)];
+        size = sizeFor(lines);
+      }
+    }
+    return { lines, size };
+  }
+
+  // ---------- state helpers ----------
+  const chosen = () => groups.flatMap(g => g.items.filter(it => it.on));
+  function slots(items) { // array of {item|null} with leading skipped slots
+    return [...Array(startAt).fill(null), ...items];
+  }
+
+  // ---------- UI: groups ----------
+  function renderGroups() {
+    const box = $("sections"); box.innerHTML = "";
+    groups.forEach((g, gi) => {
+      const d = document.createElement("details"); d.className = "sec";
+      const s = document.createElement("summary");
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "g" + gi;
+      const on = g.items.filter(i => i.on).length;
+      cb.checked = on === g.items.length; cb.indeterminate = on > 0 && on < g.items.length;
+      cb.addEventListener("click", e => { e.stopPropagation(); g.items.forEach(i => i.on = cb.checked); update(); });
+      const t = document.createElement("span"); t.className = "t"; t.textContent = g.title;
+      const c = document.createElement("span"); c.className = "c"; c.textContent = on + " of " + g.items.length + " selected";
+      const head = document.createElement("span"); head.className = "head"; head.append(t, c);
+      const tog = document.createElement("span"); tog.className = "tog";
+      tog.innerHTML = '<span class="show">Choose people</span><span class="hide">Hide names</span><span class="chev" aria-hidden="true">▾</span>';
+      s.append(cb, head, tog); d.append(s);
+      const ul = document.createElement("ul");
+      g.items.forEach((it, ii) => {
+        const li = document.createElement("li"); const lab = document.createElement("label");
+        const x = document.createElement("input"); x.type = "checkbox"; x.checked = it.on; x.id = "r" + gi + "_" + ii;
+        x.addEventListener("change", () => { it.on = x.checked; update(); });
+        const span = document.createElement("span"); span.textContent = it.lines[0];
+        const ad = document.createElement("span"); ad.className = "addr"; ad.textContent = it.lines.slice(1).join(" · ");
+        x.setAttribute("aria-label", it.lines[0]);
+        span.append(ad); lab.append(x, span); li.append(lab); ul.append(li);
+      });
+      d.append(ul); box.append(d);
+      d.dataset.gi = gi;
+    });
+  }
+  function refreshGroupHeads() {
+    document.querySelectorAll(".sec").forEach(d => {
+      const g = groups[+d.dataset.gi]; const on = g.items.filter(i => i.on).length;
+      const cb = d.querySelector("summary input"); cb.checked = on === g.items.length; cb.indeterminate = on > 0 && on < g.items.length;
+      d.querySelector(".c").textContent = on + " of " + g.items.length + " selected";
+      d.querySelectorAll("li input").forEach((x, ii) => x.checked = g.items[ii].on);
+    });
+  }
+
+  // ---------- UI: start grid ----------
+  function renderStart() {
+    const g = $("startgrid"); g.innerHTML = "";
+    for (let i = 0; i < PER; i++) {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = i < startAt ? "used" : i === startAt ? "first" : "";
+      b.setAttribute("aria-label", "Start at label " + (i + 1));
+      b.addEventListener("click", () => { startAt = i; update(); });
+      g.append(b);
+    }
+    $("startNum").textContent = "label " + (startAt + 1) + (startAt ? " (row " + (Math.floor(startAt / 3) + 1) + ", column " + (startAt % 3 + 1) + ")" : "");
+  }
+
+  // ---------- UI: preview ----------
+  const u = v => "calc(" + v + " * 100cqw / 8.5)";
+  function renderPreview() {
+    const pv = $("preview"); pv.innerHTML = "";
+    const items = chosen(); const s = slots(items);
+    $("totals").innerHTML = "<b>" + items.length + "</b> labels · " + Math.max(1, Math.ceil(s.length / PER)) + " sheet" + (Math.ceil(s.length / PER) > 1 ? "s" : "");
+    if (!items.length) { pv.innerHTML = '<div class="empty">Nothing checked yet. Tick a group in step 2.</div>'; return; }
+    const sheets = Math.ceil(s.length / PER);
+    for (let p = 0; p < sheets; p++) {
+      const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = "Sheet " + (p + 1) + " of " + sheets;
+      const sh = document.createElement("div"); sh.className = "sheet";
+      for (let k = 0; k < PER; k++) {
+        const idx = p * PER + k; const r = Math.floor(k / G.cols), c = k % G.cols;
+        const d = document.createElement("div"); d.className = "lab";
+        d.style.left = u(G.left + c * G.colPitch + nudge.x); d.style.top = u(G.top + r * G.rowPitch + nudge.y);
+        d.style.width = u(G.w); d.style.height = u(G.h); d.style.paddingLeft = u(G.padX);
+        const it = s[idx];
+        if (idx < startAt) d.classList.add("skip");
+        else if (it) {
+          const f = fit(it.lines); d.style.fontSize = u(f.size / 72);
+          f.lines.forEach(l => { const x = document.createElement("div"); x.textContent = l; d.append(x); });
+        }
+        sh.append(d);
+      }
+      pv.append(cap, sh);
+    }
+  }
+
+  function update() { refreshGroupHeads(); renderStart(); renderPreview(); }
+
+  // ---------- PDF ----------
+  function buildPDF(outline) {
+    if (!jsPDFCtor) throw new Error("The PDF tool did not load. Check your internet connection and reload the page.");
+    const doc = new jsPDFCtor({ unit: "in", format: "letter" });
+    const s = outline ? Array(PER).fill(null) : slots(chosen());
+    const pages = Math.max(1, Math.ceil(s.length / PER));
+    doc.setFont("helvetica", "normal"); doc.setTextColor(0);
+    for (let p = 0; p < pages; p++) {
+      if (p) doc.addPage();
+      for (let k = 0; k < PER; k++) {
+        const idx = p * PER + k; const r = Math.floor(k / G.cols), c = k % G.cols;
+        const x = G.left + c * G.colPitch + nudge.x, top = G.top + r * G.rowPitch + nudge.y;
+        if (outline) {
+          doc.setDrawColor(150); doc.setLineWidth(0.01); doc.roundedRect(x, top, G.w, G.h, 0.08, 0.08);
+          doc.setFontSize(7); doc.setTextColor(150); doc.text(String(k + 1), x + 0.07, top + 0.14); doc.setTextColor(0);
+          const sample = chosen()[k];
+          if (sample) drawLabel(doc, fit(sample.lines), x, top);
+          continue;
+        }
+        const it = s[idx]; if (!it) continue;
+        drawLabel(doc, fit(it.lines), x, top);
+      }
+    }
+    return doc;
+  }
+  function drawLabel(doc, f, x, top) {
+    const lead = f.size * 1.22 / 72, cap = f.size * 0.72 / 72;
+    const block = lead * (f.lines.length - 1) + cap;
+    let y = top + (G.h - block) / 2 + cap;
+    doc.setFontSize(f.size);
+    f.lines.forEach(l => { doc.text(l, x + G.padX, y); y += lead; });
+  }
+
+  async function deliver(doc, filename) {
+    const blob = doc.output("blob"); const msg = $("msg"); msg.className = "msg"; msg.textContent = "";
+    if (window.claude && typeof window.claude.use === "function") {
+      const dl = await window.claude.use("downloads");
+      if (!dl) { msg.className = "msg err"; msg.textContent = "Downloads aren't available in this view. Open the page in a browser tab and try again."; return; }
+      try { const r = await dl.save({ filename, data: blob }); if (r.status === "saved") msg.textContent = "Saved " + filename + "."; }
+      catch (e) {
+        msg.className = "msg err";
+        msg.textContent = e && e.code === "declined" ? "Download cancelled." : e && e.code === "rate_limited" ? "A save window is already open. Finish that one first." : "The download didn't go through. Try again.";
+      }
+      return;
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    msg.textContent = "Downloaded " + filename + ".";
+  }
+  const year = new Date().getFullYear();
+  $("dlLabels").addEventListener("click", async () => {
+    try {
+      if (!chosen().length) { $("msg").className = "msg err"; $("msg").textContent = "Check at least one address in step 2."; return; }
+      await deliver(buildPDF(false), "Christmas Labels " + year + " - Avery 8160.pdf");
+    } catch (e) { $("msg").className = "msg err"; $("msg").textContent = e.message; }
+  });
+  $("dlTest").addEventListener("click", async () => {
+    try { await deliver(buildPDF(true), "Label Test Page - Avery 8160.pdf"); }
+    catch (e) { $("msg").className = "msg err"; $("msg").textContent = e.message; }
+  });
+
+  // ---------- inputs ----------
+  function load(text, label) {
+    const g = buildGroups(parseText(text));
+    if (!g.length) { $("status").className = "status sample"; $("status").textContent = "No addresses found in " + label + ". Make sure columns A–C hold name, street and city/state/ZIP."; return; }
+    groups = g; startAt = 0;
+    const n = g.reduce((t, x) => t + x.items.length, 0);
+    $("status").className = "status"; $("status").textContent = "Loaded " + n + " addresses in " + g.length + " group" + (g.length > 1 ? "s" : "") + " from " + label + ".";
+    renderGroups(); update();
+  }
+  function readFile(f) { const r = new FileReader(); r.onload = () => load(String(r.result), f.name); r.readAsText(f); }
+  $("file").addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ""; });
+  const drop = $("drop");
+  ["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+  $("usePaste").addEventListener("click", () => { const t = $("pasteBox").value; if (t.trim()) load(t, "your pasted rows"); });
+  ["nudgeX", "nudgeY"].forEach(id => $(id).addEventListener("input", () => {
+    nudge = { x: parseFloat($("nudgeX").value) || 0, y: parseFloat($("nudgeY").value) || 0 };
+    try { localStorage.setItem("labelNudge", JSON.stringify(nudge)); } catch (e) {}
+    renderPreview();
+  }));
+
+  groups = buildGroups(SAMPLE);
+  renderGroups(); update();
+})();
+</script>
+</body>
+</html>
